@@ -1,8 +1,9 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import * as bcrypt from "bcrypt"
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 @Injectable()
 export class UserService {
@@ -10,15 +11,26 @@ export class UserService {
   constructor(private readonly prisma: PrismaService){}
 
   async create(data: CreateUserDto) {
-    let user = await this.prisma.user.findFirst({ where: { phone: data.phone } })
-    if (user) {
-      if (user.role === data.role) {
-        throw new BadRequestException(`${data.role} with this phone already exists`)
+    try {
+      let user = await this.prisma.user.findFirst({ where: { phone: data.phone } })
+      if (user) {
+        if (user.role === data.role) {
+          throw new BadRequestException(`${data.role} with this phone already exists`)
+        }
+      }
+      let hash = bcrypt.hashSync(data.password, 10)
+      let newUser = await this.prisma.user.create({data: {...data, password: hash}})
+      return newUser
+    } catch (error) {
+      if (error instanceof PrismaClientKnownRequestError) {
+        if (error.code === 'P2024') {
+          throw new InternalServerErrorException(
+            'Ma\'lumotlar bazasiga ulanishda muammo yuz berdi. Iltimos, qayta urinib koring.',
+          );
+        }
+        throw new BadRequestException(`Prisma xatosi: ${error.message}`);
       }
     }
-    let hash = bcrypt.hashSync(data.password, 10)
-    let newUser = await this.prisma.user.create({data: {...data, password: hash}})
-    return newUser
   }
 
   async findAll(options) {

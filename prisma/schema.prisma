@@ -78,11 +78,16 @@ model Order{
   restaurantId String
   waiters User @relation(fields: [waiterId], references: [id])
   waiterId String
-  status Boolean
+  status OrderStatus @default(PENDING)
   table String
   orderitems OrderItems[]
   debts Debt[]
   withdraws Withdraw[]
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
 }
 
 model OrderItems{
