@@ -19,16 +19,16 @@ export class RegionController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.regionService.findOne(+id);
+    return this.regionService.findOne(id);
   }
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateRegionDto: UpdateRegionDto) {
-    return this.regionService.update(+id, updateRegionDto);
+    return this.regionService.update(id, updateRegionDto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.regionService.remove(+id);
+    return this.regionService.remove(id);
   }
 }
