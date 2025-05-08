@@ -28,6 +28,7 @@ model Restaurant{
   tip Int
   regions Region @relation(fields: [regionId], references: [id])
   regionId String
+  isActive Boolean 
   users User[]
   categories Category[]
   products Product[]
@@ -56,6 +57,7 @@ model Category{
   isActive Boolean
   products Product[]
 }
+
 
 model Product{
   id String @id @default(uuid())
