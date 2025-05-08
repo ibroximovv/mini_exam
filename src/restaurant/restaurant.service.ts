@@ -16,7 +16,7 @@ export class RestaurantService {
           AND: [
             { name: createRestaurantDto.name },
             { adress: createRestaurantDto.adress },
-            { phone: createRestaurantDto.phone }, // isActive ham qoshiladi sal keyinroq
+            { phone: createRestaurantDto.phone }, 
           ]
         }
       })
