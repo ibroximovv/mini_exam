@@ -17,6 +17,7 @@ export class RestaurantService {
             { name: createRestaurantDto.name },
             { adress: createRestaurantDto.adress },
             { phone: createRestaurantDto.phone }, 
+            { isActive: true }
           ]
         }
       })

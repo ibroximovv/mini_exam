@@ -114,13 +114,13 @@ model Withdraw{
   restaurantId String
 }
 
-enum Type{
+enum Type {
   KIRISH
   CHIQISH
 }
 
 
-enum UserRole{
+enum UserRole {
   ADMIN
   SUPER_ADMIN
   OWNER
