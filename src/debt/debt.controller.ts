@@ -36,7 +36,7 @@ export class DebtController {
     required: false
   })
   @ApiQuery({
-    name: "restuarantId",
+    name: "restaurantId",
     required: false
   })
   @ApiQuery({
