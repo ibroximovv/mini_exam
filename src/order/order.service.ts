@@ -12,9 +12,11 @@ export class OrderService {
     try {
       const findone = await this.prisma.restaurant.findFirst({ where: { id: createOrderDto.restaurantId }})
       if (!findone) throw new BadRequestException('Restaurant not found')
+
       const waiterId = req['user'].id;
       const waiter = await this.prisma.user.findFirst({ where: { id: waiterId }})
       if (!waiter) throw new BadRequestException('Waiter not found')
+      
       const createNewOrder = await this.prisma.order.create({
         data: {
           restaurantId: createOrderDto.restaurantId,
@@ -22,16 +24,43 @@ export class OrderService {
           table: createOrderDto.table,
           status: OrderStatus.PENDING
         }
-      })
+      });
       
+      const orderItemsData = createOrderDto.orderItems;
+
+      const productResults = await Promise.all(
+        orderItemsData.map(async (item) => {
+          const product = await this.prisma.product.findFirst({
+            where: { id: item.productId },
+            select: { id: true, price: true },
+          });
+  
+          if (!product) {
+            throw new BadRequestException(`Product not found: ${item.productId}`);
+          }
+  
+          return {
+            ...item,
+            price: product.price,
+            total: product.price * item.quantity,
+          };
+        })
+      );
+
+      const totalPrice = productResults.reduce((sum, item) => sum + item.total, 0);
+
       await this.prisma.orderItems.createMany({
-        data: createOrderDto.orderItems.map(item => ({
+        data: productResults.map((item) => ({
           productId: item.productId,
           quantity: item.quantity,
-          orderId: createNewOrder.id
-        }))
-      })
-      return createNewOrder;
+          orderId: createNewOrder.id,
+        })),
+      });
+
+      // await this.prisma.user.update({ where: { id: waiterId }, data: {
+      //   balance: waiter.balance + (totalPrice * (findone.tip / 100))
+      // }})
+      return await this.prisma.order.update({ where: { id: createNewOrder.id }, data: { totalPrice }})
     } catch (error) {
       if (error instanceof BadRequestException) throw error
       throw new InternalServerErrorException(error.message || 'Internal server Error')
@@ -40,10 +69,26 @@ export class OrderService {
 
   async findAll() {
     try {
-      return await this.prisma.order.findMany({
+      const order = await this.prisma.order.findMany({
         include: {
-          orderitems: true,
-          restaurants: true,
+          orderitems: {
+            select: {
+              products: {
+                select: {
+                  id: true,
+                  name: true,
+                  price: true
+                }
+              },
+              quantity: true
+            }
+          },
+          restaurants: {
+            select: {
+              name: true,
+              id: true
+            }
+          },
           waiters: {
             select: {
               id: true,
@@ -57,6 +102,8 @@ export class OrderService {
           waiterId: true
         }
       });
+
+      return order
     } catch (error) {
       if (error instanceof BadRequestException) throw error
       throw new InternalServerErrorException(error.message || 'Internal server Error')
@@ -67,8 +114,24 @@ export class OrderService {
     try {
       const findone = await this.prisma.order.findFirst({ where: { id }, 
         include: {
-          orderitems: true,
-          restaurants: true,
+          orderitems: {
+            select: {
+              products: {
+                select: {
+                  id: true,
+                  name: true,
+                  price: true
+                }
+              },
+              quantity: true
+            }
+          },
+          restaurants: {
+            select: {
+              name: true,
+              id: true
+            }
+          },
           waiters: {
             select: {
               id: true,
@@ -92,26 +155,46 @@ export class OrderService {
 
   async update(id: string, updateOrderDto: UpdateOrderDto) {
     try {
-      const findone = await this.prisma.order.findFirst({ where: { id }})
-      if (!findone) throw new BadRequestException('Order not found')
-      const updated = await this.prisma.order.update({ where: { id }, data: updateOrderDto })
-      if (!updateOrderDto.orderItems || !Array.isArray(updateOrderDto.orderItems)) {
-        throw new BadRequestException('orderItems list is invalid');
+      const findone = await this.prisma.order.findFirst({ where: { id } });
+      if (!findone) throw new BadRequestException('Order not found');
+  
+      if (updateOrderDto.orderItems && Array.isArray(updateOrderDto.orderItems)) {
+        const productIds = updateOrderDto.orderItems.map(item => item.productId);
+        const products = await this.prisma.product.findMany({
+          where: { id: { in: productIds } },
+        });
+  
+        if (products.length !== productIds.length) {
+          throw new BadRequestException('Product not found');
+        }
+  
+        await this.prisma.orderItems.deleteMany({
+          where: { orderId: id },
+        });
+  
+        await this.prisma.orderItems.createMany({
+          data: updateOrderDto.orderItems.map(item => ({
+            orderId: id,
+            productId: item.productId,
+            quantity: item.quantity,
+          })),
+        });
       }
-      
-      await this.prisma.orderItems.updateMany({
-        data: updateOrderDto.orderItems.map(item => ({
-          productId: item.productId,
-          quantity: item.quantity,
-          orderId: updated.id
-        }))
-      })
+  
+      const updated = await this.prisma.order.update({
+        where: { id },
+        data: {
+          table: updateOrderDto.table || findone.table,
+        },
+      });
+  
       return updated;
     } catch (error) {
-      if (error instanceof BadRequestException) throw error
-      throw new InternalServerErrorException(error.message || 'Internal server Error')
+      if (error instanceof BadRequestException) throw error;
+      throw new InternalServerErrorException(error.message || 'Internal server error');
     }
   }
+  
 
   async remove(id: string) {
     try {
