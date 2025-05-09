@@ -4,6 +4,7 @@ import { UpdateOrderDto } from './dto/update-order.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Request } from 'express';
 import { OrderStatus } from '@prisma/client';
+import { GetOrderDto } from './dto/get-order.dto';
 
 @Injectable()
 export class OrderService {
@@ -67,9 +68,42 @@ export class OrderService {
     }
   }
 
-  async findAll() {
+  async findAll(query: GetOrderDto) {
+    const { skip = 1, take = 10, search, restaurantId, waiterId, sortBy = 'id', sortOrder = 'desc', priceFrom, priceTo } = query
     try {
       const order = await this.prisma.order.findMany({
+        where: {
+          ...(restaurantId && { restaurantId }),
+          ...(waiterId && { waiterId }),
+          ...( search && {
+            OR: [
+              { table: {
+                contains: search,
+                mode: 'insensitive'
+              }},
+              {
+                orderitems: {
+                  some: {
+                    products: {
+                      name: {
+                        contains: search,
+                        mode: 'insensitive'
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }),
+          ...(priceFrom !== undefined || priceTo !== undefined ?
+            {
+              totalPrice: {
+                ...(priceFrom !== undefined && { gte: Number(priceFrom) }),
+                ...(priceTo !== undefined && { lte: Number(priceTo) })
+              }
+            }: {}
+          )
+        },
         include: {
           orderitems: {
             select: {
@@ -100,7 +134,12 @@ export class OrderService {
         omit: {
           restaurantId: true,
           waiterId: true
-        }
+        },
+        orderBy: {
+          [sortBy]: sortOrder
+        },
+        skip: ( Number(skip) - 1 ) * Number(take),
+        take: Number(take)
       });
 
       return order
