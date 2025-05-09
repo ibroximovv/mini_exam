@@ -3,6 +3,7 @@ import { CreateWithdrawDto } from './dto/create-withdraw.dto';
 import { UpdateWithdrawDto } from './dto/update-withdraw.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { retry } from 'rxjs';
+import { PrismaClientUnknownRequestError } from '@prisma/client/runtime/library';
 
 @Injectable()
 export class WithdrawService {
@@ -10,8 +11,28 @@ export class WithdrawService {
 
   async create(data: CreateWithdrawDto) {
     try {
-      let wd = await this.prisma.withdraw.create({ data });
-      return { wd };
+      let withdraw = await this.prisma.withdraw.create({ data });
+      if (data.type == "KIRISH" && data.orderId) {
+        let restaurant = await this.prisma.restaurant.findFirst({where: {id: data.restaurantId}})
+        await this.prisma.order.update({
+          where:
+            { id: data.orderId },
+          data:
+            { status: "PAID" }
+        })
+        let a = await this.prisma.order.findFirst({
+          where:
+            { id: data.orderId }
+        })
+        let balance  = a.totalPrice / 100 * restaurant.tip
+        await this.prisma.user.update({
+          where:
+            { id: a?.waiterId },
+          data:
+            { balance: a.}
+        })
+      }
+      return { withdraw };
     } catch (error) {
       return error.message
     }

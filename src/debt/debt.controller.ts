@@ -60,6 +60,9 @@ export class DebtController {
     name: 'orderId',
     required: false,
   })
+  @Roles(UserRole.CASHER, UserRole.OWNER)
+  @UseGuards(RolesGuard)
+  @UseGuards(AuthorizationGuard)
   @Get()
   findAll(
     @Query('orderId') orderId: number,
@@ -74,12 +77,15 @@ export class DebtController {
     return this.debtService.findAll(options);
   }
 
+  @Roles(UserRole.CASHER, UserRole.OWNER)
+  @UseGuards(RolesGuard)
+  @UseGuards(AuthorizationGuard)
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.debtService.findOne(id);
   }
 
-  @Roles(UserRole.ADMIN, UserRole.CASHER, UserRole.OWNER, UserRole.SUPER_ADMIN)
+  @Roles( UserRole.CASHER, UserRole.OWNER, UserRole.SUPER_ADMIN)
   @UseGuards(RolesGuard)
   @UseGuards(AuthorizationGuard)
   @Patch(':id')
@@ -87,8 +93,7 @@ export class DebtController {
     return this.debtService.update(id, updateDebtDto);
   }
 
-
-  @Roles(UserRole.ADMIN, UserRole.CASHER, UserRole.OWNER, UserRole.SUPER_ADMIN)
+  @Roles(UserRole.CASHER, UserRole.OWNER, UserRole.SUPER_ADMIN)
   @UseGuards(RolesGuard)
   @UseGuards(AuthorizationGuard)
   @Delete(':id')
