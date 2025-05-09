@@ -17,6 +17,9 @@ export class DebtService {
           `Client "${data.client}" already have a debt`,
         );
       }
+      let a = await this.prisma.restaurant.findFirst({where: {id: data.restaurantId}})
+      let newBalance = a.outcome + data.amount
+      await this.prisma.restaurant.update({where: {id: data.restaurantId}, data: {outcome: newBalance}})
       let created = await this.prisma.debt.create({ data });
       return { created };
     } catch (error) {

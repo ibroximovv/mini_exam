@@ -2,8 +2,6 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateWithdrawDto } from './dto/create-withdraw.dto';
 import { UpdateWithdrawDto } from './dto/update-withdraw.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { retry } from 'rxjs';
-import { PrismaClientUnknownRequestError } from '@prisma/client/runtime/library';
 
 @Injectable()
 export class WithdrawService {
@@ -15,8 +13,10 @@ export class WithdrawService {
       if (data.type == "KIRISH" && data.orderId) {
         let restaurant = await this.prisma.restaurant.findFirst({ where: { id: data.restaurantId } })
         if (!restaurant) {
-          throw new NotFoundException("Restaurant nor found")
+          throw new NotFoundException("Restaurant not found")
         }
+        let newBalance = restaurant.income + data.price
+        await this.prisma.restaurant.update({ where: { id: restaurant.id }, data: { income: newBalance}})
         await this.prisma.order.update({
           where:
             { id: data.orderId },
@@ -37,7 +37,14 @@ export class WithdrawService {
           data:
             { balance: a.}
         })
-
+      }
+      else if (data.type == "CHIQISH") {
+        let restaurant = await this.prisma.restaurant.findFirst({ where: { id: data.restaurantId } })
+        if (!restaurant) {
+          throw new NotFoundException("Restaurant not found")
+        }    
+        let newBalance = restaurant.outcome + data.price
+        await this.prisma.restaurant.update({ where: { id: restaurant.id }, data: { outcome: newBalance}})
       }
       return { withdraw };
     } catch (error) {
