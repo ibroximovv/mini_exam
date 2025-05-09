@@ -22,19 +22,9 @@ export class DebtService {
         throw new NotFoundException("Restaurant not found")
       }
 
-      let newBalance = a.outcome + amount
-      await this.prisma.restaurant.update({where: {id: data.restaurantId}, data: {outcome: newBalance}})
-      let created = await this.prisma.debt.create({ data: {...data, amount} });
-
-      let order = await this.prisma.order.findFirst({where: {id: data.orderId}})
-
-      if (!order) {
-        throw new NotFoundException("Order not found")
-      }
-      let newTotal = order.totalPrice - amount
-
-      await this.prisma.order.update({where: {id: data.orderId}, data: {totalPrice: newTotal}}) 
-      return { created };
+      let created = await this.prisma.debt.create({ data: { ...data, amount } });
+      
+      return created;
     } catch (error) {
       return error.message
     }

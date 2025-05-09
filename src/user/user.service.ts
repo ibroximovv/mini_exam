@@ -38,7 +38,7 @@ export class UserService {
     }
   }
 
-  async findAll(options) {
+  async findAll(options?) {
     try {
       let where: any = {};
       if (options.name) where.name = options.name;

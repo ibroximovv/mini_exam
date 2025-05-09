@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateWithdrawDto } from './dto/create-withdraw.dto';
 import { UpdateWithdrawDto } from './dto/update-withdraw.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -11,51 +15,74 @@ export class WithdrawService {
   async create(data: CreateWithdrawDto) {
     try {
       let withdraw = await this.prisma.withdraw.create({ data });
-      if (data.type == "KIRISH" && data.orderId) {
-        let restaurant = await this.prisma.restaurant.findFirst({ where: { id: data.restaurantId } })
+      if (data.type == 'KIRISH' && data.orderId) {
+        let restaurant = await this.prisma.restaurant.findFirst({
+          where: { id: data.restaurantId },
+        });
+        let order = await this.prisma.order.findFirst({
+          where: { id: data.orderId },
+        });
+        let waiter = await this.prisma.user.findFirst({
+          where: { id: order?.waiterId },
+        });
         if (!restaurant) {
-          throw new NotFoundException("Restaurant not found")
+          throw new NotFoundException('Restaurant not found');
         }
-        let order = await this.prisma.order.findFirst({ where: { id: data.orderId } })
-        if (!order){
-          throw new NotFoundException("Order Not found")
+        if (!order) {
+          throw new NotFoundException('Order Not found');
         }
 
-        let waiterBalance = order?.totalPrice / 100 * restaurant.tip
-        let restaurantBalance = restaurant.income + (data.price - waiterBalance)
-        
-        let waiter = await this.prisma.user.findFirst({ where: { id: order?.waiterId } })
+        let waiterBalance = (order?.totalPrice / 100) * restaurant.tip;
+        let restaurantBalance =
+          restaurant.income + (data.price - waiterBalance);
+
         if (waiter?.role == UserRole.WAITER) {
-          await this.prisma.user.update({where: {id: waiter.id}, data: {balance: waiterBalance}})
+          await this.prisma.user.update({
+            where: { id: waiter.id },
+            data: { balance: waiterBalance },
+          });
         }
 
-        await this.prisma.restaurant.update({ where: { id: restaurant.id }, data: { income: restaurantBalance}})
+        await this.prisma.restaurant.update({
+          where: { id: restaurant.id },
+          data: { income: restaurantBalance },
+        });
         await this.prisma.order.update({
-          where:
-            { id: data.orderId },
-          data:
-            { status: OrderStatus.PAID}
-        })
+          where: { id: data.orderId },
+          data: { status: OrderStatus.PAID },
+        });
 
-        
         await this.prisma.user.update({
-          where:
-            { id: waiter?.id },
-          data:
-            { balance: waiterBalance}
-        })
-      }
-      else if (data.type == "CHIQISH") {
-        let restaurant = await this.prisma.restaurant.findFirst({ where: { id: data.restaurantId } })
+          where: { id: waiter?.id },
+          data: { balance: waiterBalance },
+        });
+
+        let debt = await this.prisma.debt.findFirst({
+          where: { orderId: data.orderId },
+        });
+        if (debt) {
+          if (debt.amount <= data.price) {
+            await this.prisma.debt.delete({ where: { id: debt.id } });
+          } else {
+            throw new BadRequestException(`You can not pay less than your order's total price.`);
+          }
+        }
+      } else if (data.type == 'CHIQISH') {
+        let restaurant = await this.prisma.restaurant.findFirst({
+          where: { id: data.restaurantId },
+        });
         if (!restaurant) {
-          throw new NotFoundException("Restaurant not found")
-        }    
-        let newBalance = restaurant.outcome + data.price
-        await this.prisma.restaurant.update({ where: { id: restaurant.id }, data: { outcome: newBalance}})
+          throw new NotFoundException('Restaurant not found');
+        }
+        let newBalance = restaurant.outcome + data.price;
+        await this.prisma.restaurant.update({
+          where: { id: restaurant.id },
+          data: { outcome: newBalance },
+        });
       }
       return { withdraw };
     } catch (error) {
-      return error.message
+      return error.message;
     }
   }
 
@@ -90,7 +117,7 @@ export class WithdrawService {
 
       return withdraws;
     } catch (error) {
-      return error.message
+      return error.message;
     }
   }
 
@@ -105,7 +132,7 @@ export class WithdrawService {
       }
       return { one };
     } catch (error) {
-      return error.message
+      return error.message;
     }
   }
 
@@ -118,7 +145,7 @@ export class WithdrawService {
       let updated = await this.prisma.withdraw.update({ where: { id }, data });
       return { updated };
     } catch (error) {
-      return error.message
+      return error.message;
     }
   }
 
@@ -131,7 +158,7 @@ export class WithdrawService {
       let deleted = await this.prisma.withdraw.delete({ where: { id } });
       return { deleted };
     } catch (error) {
-      return error.message
+      return error.message;
     }
   }
 }
