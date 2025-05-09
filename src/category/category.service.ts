@@ -59,9 +59,7 @@ export class CategoryService {
         },
       });
 
-      return {
-        datas,
-      };
+      return datas
     } catch (error) {
       return error.message
     }

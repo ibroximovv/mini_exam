@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { CreateDebtDto } from './dto/create-debt.dto';
 import { UpdateDebtDto } from './dto/update-debt.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { ProgramUpdateLevel } from 'typescript';
 
 @Injectable()
 export class DebtService {
@@ -9,18 +10,30 @@ export class DebtService {
 
   async create(data: CreateDebtDto) {
     try {
+      const {amount = 0} = data
       let db = await this.prisma.debt.findFirst({
         where: { client: data.client },
       });
       if (db) {
-        throw new BadRequestException(
-          `Client "${data.client}" already have a debt`,
-        );
+        throw new BadRequestException({message: `Client "${data.client}" already have a debt`})
       }
-      let a = await this.prisma.restaurant.findFirst({where: {id: data.restaurantId}})
-      let newBalance = a.outcome + data.amount
+      let a = await this.prisma.restaurant.findFirst({ where: { id: data.restaurantId } })
+      if (!a) {
+        throw new NotFoundException("Restaurant not found")
+      }
+
+      let newBalance = a.outcome + amount
       await this.prisma.restaurant.update({where: {id: data.restaurantId}, data: {outcome: newBalance}})
-      let created = await this.prisma.debt.create({ data });
+      let created = await this.prisma.debt.create({ data: {...data, amount} });
+
+      let order = await this.prisma.order.findFirst({where: {id: data.orderId}})
+
+      if (!order) {
+        throw new NotFoundException("Order not found")
+      }
+      let newTotal = order.totalPrice - amount
+
+      await this.prisma.order.update({where: {id: data.orderId}, data: {totalPrice: newTotal}}) 
       return { created };
     } catch (error) {
       return error.message

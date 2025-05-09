@@ -22,7 +22,7 @@ import { AuthorizationGuard } from 'src/authorization/authorization.guard';
 export class DebtController {
   constructor(private readonly debtService: DebtService) {}
 
-  @Roles(UserRole.CASHER, UserRole.OWNER)
+  @Roles(UserRole.ADMIN, UserRole.OWNER)
   @UseGuards(RolesGuard)
   @UseGuards(AuthorizationGuard)
   @Post()
@@ -60,7 +60,7 @@ export class DebtController {
     name: 'orderId',
     required: false,
   })
-  @Roles(UserRole.CASHER, UserRole.OWNER)
+  @Roles(UserRole.ADMIN, UserRole.OWNER)
   @UseGuards(RolesGuard)
   @UseGuards(AuthorizationGuard)
   @Get()

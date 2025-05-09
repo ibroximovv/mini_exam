@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsNumber,
+  IsOptional,
   IsString,
   Max,
   MaxLength,
@@ -12,11 +13,12 @@ export class CreateDebtDto {
   @ApiProperty()
   @IsString()
   orderId: string;
-  @ApiProperty()
+  @ApiProperty({required: false})
   @IsNumber()
   @Min(1)
   @Max(1000000)
-  amount: number;
+    @IsOptional()
+  amount?: number;
   @ApiProperty()
   @IsString()
   @MinLength(3)

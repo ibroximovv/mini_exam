@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateWithdrawDto } from './dto/create-withdraw.dto';
 import { UpdateWithdrawDto } from './dto/update-withdraw.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { OrderStatus } from '@prisma/client';
+import { OrderStatus, UserRole } from '@prisma/client';
 
 @Injectable()
 export class WithdrawService {
@@ -16,8 +16,20 @@ export class WithdrawService {
         if (!restaurant) {
           throw new NotFoundException("Restaurant not found")
         }
-        let newBalance = restaurant.income + data.price
-        await this.prisma.restaurant.update({ where: { id: restaurant.id }, data: { income: newBalance}})
+        let order = await this.prisma.order.findFirst({ where: { id: data.orderId } })
+        if (!order){
+          throw new NotFoundException("Order Not found")
+        }
+
+        let waiterBalance = order?.totalPrice / 100 * restaurant.tip
+        let restaurantBalance = restaurant.income + (data.price - waiterBalance)
+        
+        let waiter = await this.prisma.user.findFirst({ where: { id: order?.waiterId } })
+        if (waiter?.role == UserRole.WAITER) {
+          await this.prisma.user.update({where: {id: waiter.id}, data: {balance: waiterBalance}})
+        }
+
+        await this.prisma.restaurant.update({ where: { id: restaurant.id }, data: { income: restaurantBalance}})
         await this.prisma.order.update({
           where:
             { id: data.orderId },
@@ -25,18 +37,12 @@ export class WithdrawService {
             { status: OrderStatus.PAID}
         })
 
-        let a = await this.prisma.order.findFirst({
-          where:
-            { id: data.orderId }
-        })
-
-        let balance = a.totalPrice / 100 * restaurant?.tip
         
         await this.prisma.user.update({
           where:
-            { id: a?.waiterId },
+            { id: waiter?.id },
           data:
-            { balance: a.}
+            { balance: waiterBalance}
         })
       }
       else if (data.type == "CHIQISH") {
