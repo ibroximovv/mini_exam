@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Req, UseGuards, Query } from '@nestjs/common';
 import { OrderService } from './order.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
@@ -7,6 +7,7 @@ import { AuthorizationGuard } from 'src/authorization/authorization.guard';
 import { RolesGuard } from 'src/roles/roles.guard';
 import { Roles } from 'src/common/role.decorator';
 import { UserRole } from '@prisma/client';
+import { GetOrderDto } from './dto/get-order.dto';
 
 @Controller('order')
 export class OrderController {
@@ -21,8 +22,8 @@ export class OrderController {
   }
 
   @Get()
-  findAll() {
-    return this.orderService.findAll();
+  findAll(@Query() query: GetOrderDto) {
+    return this.orderService.findAll(query);
   }
 
   @Get(':id')
