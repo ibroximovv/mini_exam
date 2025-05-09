@@ -26,6 +26,8 @@ model Restaurant{
   adress String
   phone String
   tip Int
+  income Int @default(0)
+  outcome Int @default(0)
   regions Region @relation(fields: [regionId], references: [id])
   regionId String
   isActive Boolean 
@@ -83,6 +85,7 @@ model Order{
   orderitems OrderItems[]
   debts Debt[]
   withdraws Withdraw[]
+  totalPrice Int @default(0)
 }
 
 enum OrderStatus {
@@ -123,7 +126,6 @@ enum Type {
   KIRISH
   CHIQISH
 }
-
 
 enum UserRole {
   ADMIN

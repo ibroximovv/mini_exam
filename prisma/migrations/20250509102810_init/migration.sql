@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Restaurant" ADD COLUMN     "income" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "outcome" INTEGER NOT NULL DEFAULT 0;

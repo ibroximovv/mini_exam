@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateWithdrawDto } from './dto/create-withdraw.dto';
 import { UpdateWithdrawDto } from './dto/update-withdraw.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { OrderStatus } from '@prisma/client';
 
 @Injectable()
 export class WithdrawService {
@@ -21,7 +22,7 @@ export class WithdrawService {
           where:
             { id: data.orderId },
           data:
-            { status: "PAID" }
+            { status: OrderStatus.PAID}
         })
 
         let a = await this.prisma.order.findFirst({
