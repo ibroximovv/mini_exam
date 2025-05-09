@@ -21,7 +21,7 @@ export class CreateRestaurantDto {
     @IsNumber()
     tip: number
 
-    @ApiProperty()
+    @ApiProperty({ example: 'a53088b5-9d73-4973-8fc8-6c75e2a7d47c'})
     @IsUUID()
     regionId: UUID
 
