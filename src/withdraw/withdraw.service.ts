@@ -13,24 +13,31 @@ export class WithdrawService {
     try {
       let withdraw = await this.prisma.withdraw.create({ data });
       if (data.type == "KIRISH" && data.orderId) {
-        let restaurant = await this.prisma.restaurant.findFirst({where: {id: data.restaurantId}})
+        let restaurant = await this.prisma.restaurant.findFirst({ where: { id: data.restaurantId } })
+        if (!restaurant) {
+          throw new NotFoundException("Restaurant nor found")
+        }
         await this.prisma.order.update({
           where:
             { id: data.orderId },
           data:
             { status: "PAID" }
         })
+
         let a = await this.prisma.order.findFirst({
           where:
             { id: data.orderId }
         })
-        let balance  = a.totalPrice / 100 * restaurant.tip
+
+        let balance = a.totalPrice / 100 * restaurant?.tip
+        
         await this.prisma.user.update({
           where:
             { id: a?.waiterId },
           data:
             { balance: a.}
         })
+
       }
       return { withdraw };
     } catch (error) {
