@@ -3,6 +3,7 @@ import { CreateRestaurantDto } from './dto/create-restaurant.dto';
 import { UpdateRestaurantDto } from './dto/update-restaurant.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Region } from 'src/region/entities/region.entity';
+import { GetRestaurantDto } from './dto/get-restaurant.dto';
 
 @Injectable()
 export class RestaurantService {
@@ -22,21 +23,70 @@ export class RestaurantService {
         }
       })
       if (findone) throw new BadRequestException('Restaurant already exists.')
-      return await this.prisma.restaurant.create({ data: createRestaurantDto });
+      return await this.prisma.restaurant.create({ data: createRestaurantDto,
+        include: {
+          regions: true
+        },
+        omit: {
+          regionId: true
+        },
+     });
     } catch (error) {
       if(error instanceof BadRequestException) throw error;
       throw new InternalServerErrorException(error.message || 'Internal server Error')
     }
   }
 
-  async findAll() {
+  async findAll(query: GetRestaurantDto) {
+    const { search, skip = 1, take = 10, isActive, regionId, priceFrom, priceTo, sortBy = 'id', sortOrder = 'desc' } = query
+    let priceFilterField: 'income' | 'outcome' | 'tip' | undefined;
+    if (sortBy === 'income' || sortBy === 'outcome' || sortBy === 'tip') {
+      priceFilterField = sortBy
+    }
     try {
       return await this.prisma.restaurant.findMany({
+        where: {
+          ...(search && {
+            OR: [
+              {
+                name: {
+                  contains: search,
+                  mode: 'insensitive'
+                }
+              },
+              {
+                adress: {
+                  contains: search,
+                  mode: 'insensitive'
+                }
+              },
+              {
+                phone: {
+                  contains: search,
+                  mode: 'insensitive'
+                }
+              }
+            ]
+          }),
+          ...(priceFilterField && (priceFrom !== undefined || priceTo !== undefined) && {
+            [priceFilterField]: {
+              ...(priceFrom !== undefined && { gte: Number(priceFrom) }),
+              ...(priceTo !== undefined && { lte: Number(priceTo) }),
+            }
+          }),
+          ...(isActive !== undefined ? { isActive }: {}),
+          ...(regionId && { regionId })
+        },
         include: {
           regions: true
         },
         omit: {
           regionId: true
+        },
+        skip: ( Number(skip) - 1 ) * Number(take),
+        take: Number(take),
+        orderBy: {
+          [sortBy]: sortOrder
         }
       });
     } catch (error) {
@@ -47,7 +97,14 @@ export class RestaurantService {
 
   async findOne(id: string) {
     try {
-      const findone = await this.prisma.restaurant.findFirst({ where: { id }})
+      const findone = await this.prisma.restaurant.findFirst({ where: { id },
+        include: {
+          regions: true
+        },
+        omit: {
+          regionId: true
+        },
+      })
       if (!findone) throw new BadRequestException('Restaurant not found')
       return findone;
     } catch (error) {
@@ -72,7 +129,14 @@ export class RestaurantService {
           }
         })
       if (findOne) throw new BadRequestException('Restaurant already exists.')
-      return await this.prisma.restaurant.update({ where: { id }, data: updateRestaurantDto });
+      return await this.prisma.restaurant.update({ where: { id }, data: updateRestaurantDto, 
+        include: {
+          regions: true
+        },
+        omit: {
+          regionId: true
+        },
+      });
     } catch (error) {
       if(error instanceof BadRequestException) throw error;
       throw new InternalServerErrorException(error.message || 'Internal server Error')
@@ -83,7 +147,14 @@ export class RestaurantService {
     try {
       const findone = await this.prisma.restaurant.findFirst({ where: { id }})
       if (!findone) throw new BadRequestException('Restaurant not found')
-      return await this.prisma.restaurant.delete({ where: { id }});
+      return await this.prisma.restaurant.delete({ where: { id }, 
+        include: {
+          regions: true
+        },
+        omit: {
+          regionId: true
+        },
+      });
     } catch (error) {
       if(error instanceof BadRequestException) throw error;
       throw new InternalServerErrorException(error.message || 'Internal server Error')

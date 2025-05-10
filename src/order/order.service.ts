@@ -69,7 +69,7 @@ export class OrderService {
   }
 
   async findAll(query: GetOrderDto) {
-    const { skip = 1, take = 10, search, restaurantId, waiterId, sortBy = 'id', sortOrder = 'desc', priceFrom, priceTo } = query
+    const { skip = 1, take = 10, search, restaurantId, waiterId, sortBy = 'id', sortOrder = 'desc', priceFrom, priceTo, status } = query
     try {
       const order = await this.prisma.order.findMany({
         where: {
@@ -102,7 +102,8 @@ export class OrderService {
                 ...(priceTo !== undefined && { lte: Number(priceTo) })
               }
             }: {}
-          )
+          ),
+          ...(status !== undefined ? { status } : {})
         },
         include: {
           orderitems: {
@@ -225,6 +226,37 @@ export class OrderService {
         data: {
           table: updateOrderDto.table || findone.table,
         },
+        include: {
+          orderitems: {
+            select: {
+              products: {
+                select: {
+                  id: true,
+                  name: true,
+                  price: true
+                }
+              },
+              quantity: true
+            }
+          },
+          restaurants: {
+            select: {
+              name: true,
+              id: true
+            }
+          },
+          waiters: {
+            select: {
+              id: true,
+              name: true,
+              phone: true
+            }
+          }
+        },
+        omit: {
+          restaurantId: true,
+          waiterId: true
+        }
       });
   
       return updated;
@@ -237,7 +269,44 @@ export class OrderService {
 
   async remove(id: string) {
     try {
-      return `This action removes a #${id} order`;
+      const finddOrder = await this.prisma.order.findFirst({ where: { id }})
+      if (!finddOrder) throw new BadRequestException('Order not found')
+      const findOrderItems = await this.prisma.orderItems.findFirst({ where: { orderId: id } })
+      if (!findOrderItems) throw new BadRequestException('OrderItems not found')
+      await this.prisma.orderItems.delete({ where: { id: findOrderItems.id }})
+      return await this.prisma.order.delete({ where: { id }, 
+        include: {
+          orderitems: {
+            select: {
+              products: {
+                select: {
+                  id: true,
+                  name: true,
+                  price: true
+                }
+              },
+              quantity: true
+            }
+          },
+          restaurants: {
+            select: {
+              name: true,
+              id: true
+            }
+          },
+          waiters: {
+            select: {
+              id: true,
+              name: true,
+              phone: true
+            }
+          }
+        },
+        omit: {
+          restaurantId: true,
+          waiterId: true
+        }
+      });
     } catch (error) {
       if (error instanceof BadRequestException) throw error
       throw new InternalServerErrorException(error.message || 'Internal server Error')

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query } from '@nestjs/common';
 import { RestaurantService } from './restaurant.service';
 import { CreateRestaurantDto } from './dto/create-restaurant.dto';
 import { UpdateRestaurantDto } from './dto/update-restaurant.dto';
@@ -6,6 +6,7 @@ import { AuthorizationGuard } from 'src/authorization/authorization.guard';
 import { Roles } from 'src/common/role.decorator';
 import { RolesGuard } from 'src/roles/roles.guard';
 import { UserRole } from '@prisma/client';
+import { GetRestaurantDto } from './dto/get-restaurant.dto';
 
 @Controller('restaurant')
 export class RestaurantController {
@@ -20,8 +21,8 @@ export class RestaurantController {
   }
 
   @Get()
-  findAll() {
-    return this.restaurantService.findAll();
+  findAll(@Query() query: GetRestaurantDto) {
+    return this.restaurantService.findAll(query);
   }
 
   @Get(':id')

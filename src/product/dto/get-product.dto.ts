@@ -1,9 +1,9 @@
 import { ApiProperty } from "@nestjs/swagger"
-import { Type } from "class-transformer"
-import { IsIn, IsInt, IsOptional, IsPositive, IsString, IsUUID } from "class-validator"
+import { Transform, Type } from "class-transformer"
+import { IsBoolean, IsIn, IsInt, IsOptional, IsPositive, IsString, IsUUID } from "class-validator"
 import { UUID } from "crypto"
 
-export class GetOrderDto {
+export class GetProductDto {
     @ApiProperty({ required: false })
     @IsOptional()
     @IsPositive()
@@ -28,25 +28,21 @@ export class GetOrderDto {
     @IsUUID()
     restaurantId?: UUID
 
-    @ApiProperty({ required: false })
+    @ApiProperty({ required: false, enum: ['id', 'name', 'price'] })
     @IsOptional()
-    @IsUUID()
-    waiterId?: UUID
-
-    @ApiProperty({ required: false, enum: ['id', 'table', 'totalPrice'] })
-    @IsOptional()
-    @IsIn(['id', 'table', 'totalPrice'])
-    sortBy?: 'id' | 'table' | 'totalPrice'
+    @IsIn(['id', 'name', 'price'])
+    sortBy?: 'id' | 'name' | 'price'
 
     @ApiProperty({ required: false, enum: ['asc', 'desc'] })
     @IsOptional()
     @IsIn(['asc', 'desc'])
     sortOrder?: 'asc' | 'desc'
 
-    @ApiProperty({ required: false, enum: ['PENDING', 'PAID', 'DEBT'] })
+    @ApiProperty({ required: false, type: Boolean })
     @IsOptional()
-    @IsIn(['PENDING', 'PAID'])
-    status?: 'PENDING' | 'PAID' | 'DEBT'
+    @IsBoolean()
+    @Transform(({ value }) => value === 'true' || value === true)
+    isActive?: boolean;
 
     @ApiProperty({ required: false })
     @IsOptional()

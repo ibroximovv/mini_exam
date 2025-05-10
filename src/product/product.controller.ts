@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query } from '@nestjs/common';
 import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -6,6 +6,7 @@ import { AuthorizationGuard } from 'src/authorization/authorization.guard';
 import { RolesGuard } from 'src/roles/roles.guard';
 import { Roles } from 'src/common/role.decorator';
 import { UserRole } from '@prisma/client';
+import { GetProductDto } from './dto/get-product.dto';
 
 @Controller('product')
 export class ProductController {
@@ -20,8 +21,8 @@ export class ProductController {
   }
 
   @Get()
-  findAll() {
-    return this.productService.findAll();
+  findAll(@Query() query: GetProductDto) {
+    return this.productService.findAll(query);
   }
 
   @Get(':id')
