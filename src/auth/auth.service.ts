@@ -3,10 +3,26 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { LoginUserDto } from './dto/login-user.dto';
 import * as bcrypt from "bcrypt";
 import { JwtService } from '@nestjs/jwt';
+import { CreateAdminDto } from './dto/create-admin.dto';
 
 @Injectable()
 export class AuthService {
   constructor(private readonly prisma: PrismaService, private readonly jwt: JwtService){}
+  async creteAdmin(createAdminDto: CreateAdminDto) {
+    try {
+      const findUser = await this.prisma.user.findFirst({ where: { phone: createAdminDto.phone }})
+      if (findUser) throw new BadRequestException('User already exists')
+      const hashedPassword = bcrypt.hashSync(createAdminDto.password, 10)
+      return await this.prisma.user.create({ data: {
+        ...createAdminDto,
+        password: hashedPassword
+      }})
+    } catch (error) {
+      if(error instanceof BadRequestException) throw error
+      throw new InternalServerErrorException(error.message || 'Internal server Error')
+    }
+  }
+
   async login(loginUserDto: LoginUserDto) {
     try {
       const findUser = await this.prisma.user.findFirst({ where: { phone: loginUserDto.phone }})

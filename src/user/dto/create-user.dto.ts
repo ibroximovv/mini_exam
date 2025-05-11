@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
-import { IsPhoneNumber, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsEnum, IsPhoneNumber, IsString, MaxLength, MinLength } from 'class-validator';
 
 
 export enum UserCreateRole {
@@ -23,6 +23,7 @@ export class CreateUserDto {
   @MaxLength(32, { message: 'Parol 32 ta belgidan oshmasligi kerak' })
   password: string;
   @ApiProperty({ enum: UserCreateRole })
+  @IsEnum(UserCreateRole)
   role: UserRole;
   @ApiProperty()
   @IsString({ message: 'Siz faqat String tipida malumot yubora olasiz' })
